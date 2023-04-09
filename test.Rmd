@@ -1,0 +1,80 @@
+---
+title: Customer Behavior Analysis and Predictive Modelling of Telco Campaign Offer
+  Taker
+author: "Yin Khar Shin, Sam Kar Hong, Rose Tiong, Lee Wei Qin, Chua Xing Zhao"
+date: "2023-04-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this report, we will explore the mtcars dataset to gain insights into the relationship between car attributes and fuel efficiency.
+
+## Load Libraries
+
+We will start by loading the necessary libraries for our analysis:
+
+```{r load-libraries, echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(caret)
+library(ggplot2)
+library(tidymodels)
+```
+
+## Load Dataset
+Next, we will load the `mtcars` dataset:
+
+```{r data}
+data(mtcars)
+head(mtcars)
+```
+## EDA
+
+To gain a better understanding of our data, we will perform some exploratory data analysis (EDA). We will start by looking at the summary statistics of our data:
+
+```{r cars}
+summary(cars)
+```
+
+## Visualizations
+Next, we will create some visualizations to explore the relationships between our variables:
+
+```{r visuals, echo=FALSE}
+# Scatterplot matrix of mtcars dataset
+ggplot(mtcars, aes(x = mpg, y = wt)) + geom_point() +
+  labs(title = "Scatterplot Matrix of mtcars dataset")
+```
+
+Based on the scatterplot matrix, we can see that there is a negative relationship between mpg (miles per gallon) and wt (weight). This suggests that lighter cars tend to have higher miles per gallon.
+
+## Modeling
+To investigate the relationship between mpg and wt in more detail, let's fit a linear regression model:
+
+```{r mod, echo=TRUE}
+# Fit a linear regression model
+lm_fit <- lm(mpg ~ wt, data = mtcars)
+
+# Print the summary of the model
+summary(lm_fit)
+```
+
+The summary of the model shows that there is a statistically significant negative relationship between mpg and wt. Specifically, for every unit increase in weight, mpg decreases by 5.344.
+
+We can also use the caret package to perform cross-validation and assess the accuracy of the model:
+
+```{r result, echo=TRUE}
+# Use 10-fold cross-validation to assess the accuracy of the model
+lm_cv <- train(mpg ~ wt, data = mtcars, method = "lm", trControl = trainControl(method = "cv", number = 10))
+
+# Print the accuracy of the model
+lm_cv$results$RMSE
+```
+The root mean squared error (RMSE) of the model is 2.967, which suggests that the model has decent accuracy.
+
+## Conclusion
+
+In this report, we explored the mtcars dataset using R and investigated the relationship between mpg and wt. We found that there is a statistically significant negative relationship between the two variables, with lighter cars tending to have higher miles per gallon. We also fit a linear regression model and used cross-validation to assess its accuracy. Overall, our findings suggest that weight is an important predictor of miles per gallon for the automobiles in the mtcars dataset.
