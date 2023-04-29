@@ -1,0 +1,52 @@
+---
+title: "Methodology (Draft)"
+output: html_document
+date: "2023-04-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Business Understanding
+
+This project aims at analysing telco customer behaviours and building a machine learning model to predict if the customer would accept or decline the telco migration plan based on their usage and revenue patterns. The customer behavioural analysis would bring forth a profile consisting of different behavioural patterns or hidden insights for both campaign takers and rejectors. With this profile, the Base Management Team in ZenTel could adjust the new rate plan to ensure greater customer enlightenment leading to stronger customer retention. On the other hand, the machine learning model should be precise enough to provide a solution to ZenTel without compromising the generalisability. It will be predicting if a customer would accept or reject the new rate plan based on their usage and revenue behaviours once the initiative is officially launched. By then, ZenTel can develop tailored business strategies for both campaign takers and rejectors, thus maintaining customer retention and maximising the business profit. In short, by combining customer behavioral analysis with machine learning models, ZenTel can ensure a successful migration to its new platform.
+
+Data Acquisition
+
+A set of ZenTel pilot campaign data was obtained and personal information was masked to comply with the company's data protection policy. This dataset was made up of secondary data dated from 5th October 2022 to 11th October 2022. There were 7,272 samples in which the target base was a group of prepaid Malaysian customers with silent status. XX variables were presented including samples’ demographic information, usage, and revenue activities before and after the campaign. The dataset was imported into R Studio where data preprocessing, exploratory data analysis (EDA), modelling and evaluation would be performed.
+
+Data Preprocessing
+
+Descriptive analysis was carried out to understand the campaign data before data cleaning. R functions were run to check if there was missing data or duplication. Any missing data would be checked and treated accordingly whereas duplication would be removed. After that, data type conversion was conducted to make sure all variables were in relevant data types for analysis and modelling.
+
+Since this project focuses on the customer behaviours before campaign to predict if they would accept or reject the offer, variables of customer behaviours after the campaign and other irrelevant variable such as nationality were removed. XX variables were left for data analysis. Furthermore, one-hot encoding was performed to generate dummy variables for categorical attributes ranging from “Gender”, “State”, “Data_Purc_Before”, and “Rld_Ind_Before”.
+
+Exploratory Data Analysis (EDA) 
+
+In the EDA phase, univariate and bivariate analysis were conducted to explore the campaign data from different dimensions.
+
+Univariate analysis is the starting point of analysis. It analyses a single variable without looking further at the relationship between variables (American Psychological Association, 2023). Summary statistics were computed to identify mean, standard deviation, variance, minimum, maximum, median, range, and quantile for all variables. Further establishing on the summary statistics, numerical variables were visualised using violin plot whereas categorical variables were displayed using horizontal bar plot. Visualisation was done to observe the distribution and identify any inconsistency or noise in the dataset. For any skewed distribution identified during the visualisation, min-max normalisation was carried out to transform the statistical distributions using a common scale over all variables such that the trends can be accurately reported.
+
+Bivariate analysis involves the analysis of two variables in the context of identifying relationships or patterns between them (Bertani et al., 2018). Pearson correlation coefficient was calculated to measure the strength of linear relationship between two numerical variables, followed by heat map plotting. If there were variables with high correlation coefficients, feature selection would be performed to reduce the number of input variables and include only the most relevant attributes for modelling.
+
+Modelling
+
+A machine learning classification model was developed to analyse customer behaviour and predict if they would likely take up the offer or not whereas a regression model was used to predict the data charge levels of both offer takers and rejectors. Since the ZenTel campaign dataset does not follow any specific distribution, a non-parametric unsupervised learning approach using Random Forest method was specifically chosen for the classification problem. A classic classifier, decision tree, was also developed to benchmark the classification performance.  In the meantime, the variable “Data_Chrg_Before” was chosen as the target variable for linear regression. The dataset was then split into 80:20 train and test subsets to validate the model performance. Overall, both classification and regression models are useful in predicting the success of ZenTel’s official migration.
+
+Result and Interpretation
+
+Both Random Forest and decision tree models were evaluated using confusion matrix to determine their accuracy. Additionally, a feature importance function was applied to assess the impact of removing or shuffling each variable on the model's prediction error. To evaluate how well the linear regression model fits the ZenTel dataset, Root mean squared error (RMSE) and R-squared (R2) were used. RMSE measures the difference between predicted and actual values of the dependent variable, while R-squared (R2) indicates the proportion of variance in the dependent variable that is explained by the independent variables (Huang et al., 2020; Duke University, n.d.).
+
+
+
+References:
+
+American Psychological Association. (2023). Univariate analysis. Retrieved from https://dictionary.apa.org/univariate-analysis 
+
+Bertani, A., Paolo, G.D., Russo, E., & Tuzzolino, F. (2018). How to describe bivariate data. Journal of Thoracic Disease, 10(2), 1133-1137. DOI: https://doi.org/10.21037%2Fjtd.2018.01.134 
+
+Duke University. (n.d.). Linear regression models. Retrieved from https://people.duke.edu/~rnau/rsquared.htm 
+
+Huang, Y., Su, S.W., & Song, R. (2020). Voluntary intention-driven rehabilitation robots for the upper limb. Intelligent Biomechanics in Neurorehabilitation, 111-130. Retrieved from https://www.sciencedirect.com/science/article/abs/pii/B9780128149423000076
+
