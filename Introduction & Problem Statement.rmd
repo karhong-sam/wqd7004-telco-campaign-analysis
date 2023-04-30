@@ -28,4 +28,4 @@
 3.	To estimate the revenue generated from data usage before the campaign using regression techniques.
 
 ## Citation
-Cote, C. (2021) What is marketing analytics?: HBS Online, Business Insights Blog. Available at: https://online.hbs.edu/blog/post/what-is-marketing-analytics (Accessed: April 28, 2023). 
+Cote, C. (2021, January 21). What is marketing analytics?: HBS Online. Retrieved April 28, 2023, from https://online.hbs.edu/blog/post/what-is-marketing-analytics. 
