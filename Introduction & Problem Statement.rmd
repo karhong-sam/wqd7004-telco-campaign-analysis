@@ -1,12 +1,3 @@
----
-title: "Predictive Modeling of Telco Campaign Offer Uptake: Analyzing Customer Behavior"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ## Introduction 
 
 Marketing analytics is a process of gathering and analysing data to evaluate the effectiveness of marketing activities and strategies. It involves the use of statistical and quantitative methods to make data-driven decisions and gain insights into customer behaviour and preferences.
