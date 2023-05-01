@@ -1,0 +1,31 @@
+## Introduction 
+
+<p align='justify'>Marketing analytics is a process of gathering and analysing data to evaluate the effectiveness of marketing activities and strategies. It involves the use of statistical and quantitative methods to make data-driven decisions and gain insights into customer behaviour and preferences.</p>
+<p align='justify'>Marketing analytics is widely used by companies, especially in the telecommunications industry. It was used to determine the main factors of consumer action to enhance the company marketing strategies and maximize return on investments for their marketing expenses(Cote, 2021). Telco companies are always looking to improve customer experience, and marketing analytics helps them achieve this goal by enabling them to deliver the best value for money offerings and rate plans to their customers.</p>
+<p align='justify'>In this project, a real corporate dataset of a pilot marketing campaign from a telecommunication company will be used. This pilot marketing campaign was launched by ZenTel (pseudonym due to confidentiality), which is one of the largest telecommunication companies in Malaysia. In order to improve user and customer experience, ZenTel has recently proposed to migrate their existing telco platform to a more advanced platform that provides seamless and excellent experience to their customers. The company aims to migrate all customers’ old rate plans to a newer rate plan at a lower cost with better benefits, and they have launched an initiative called “Right Planning” to achieve this goal. </p>
+<p align='justify'>To evaluate the efficacy of the proposed campaign, the Base Management Team at ZenTel conducted a trial run with a select group of customers before officially launching "Right Planning" to their seven million customers. In this project, a sample size of customers was selected to evaluate the effectiveness of the campaign. ZenTel's objective through this project is to improve the customer experience by introducing new rate plans that provide superior benefits and offers, while simultaneously eliminating obsolete rate plans and establishing uniformity in the information regarding rate plans stored in the new platform.</p>
+
+
+## Problem Statement
+
+<p>**Classification problem statement:**</P>
+<p align='justify'>The goal of this project is to determine which customers will opt-in for the migration plan by predicting the offer taker indicator based on customer information such as tenure, age, gender, nationality, state, and other factors. This will help ZenTel to understand the characteristics of customers who are likely to accept the new rate plan and offer better services to them in the future.</p>
+
+<p>**Regression problem statement:**</P>
+<p align='justify'>The aim of this project is to predict the total amount of data charged before the campaign launched using variables such as customer age, gender, nationality, state, and other factors. This will allow ZenTel to estimate the revenue generated from data usage before the campaign, which can help the company to optimize pricing strategies for data services.</p>
+
+
+## Research Questions
+
+1.	What are the key factors that influence customers to opt-in for the migration campaign?
+2.	Can we accurately predict which customers will opt-in for the migration campaign?
+3.	What is the estimated revenue generated from data usage before the campaign?
+
+## Research Objective
+
+1.	To identify the key factors that influence customers to opt-in for the migration campaign.
+2.	To develop a classification model that accurately predicts which customers will opt-in for the migration campaign.
+3.	To estimate the revenue generated from data usage before the campaign using regression techniques.
+
+## Citation
+Cote, C. (2021, January 21). What is marketing analytics?: HBS Online. Retrieved April 28, 2023, from https://online.hbs.edu/blog/post/what-is-marketing-analytics. 
