@@ -1,0 +1,436 @@
+---
+title: Customer Behavior Analysis and Predictive Modelling of Telco Campaign Offer
+  Taker
+author: "Khar Shin Yin (Leader), Kar Hong Sam, Rose Tiong, Wei Qin Lee, Xing Zhao Chua"
+date: "`r format(Sys.Date(), '%d-%m-%Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+<p align='justify'>Marketing analytics is a process of gathering and analysing data to evaluate the effectiveness of marketing activities and strategies. It involves the use of statistical and quantitative methods to make data-driven decisions and gain insights into customer behaviour and preferences.</p>
+<p align='justify'>Marketing analytics is widely used by companies, especially in the telecommunications industry. It was used to determine the main factors of consumer action to enhance the company marketing strategies and maximize return on investments for their marketing expenses(Cote, 2021). Telco companies are always looking to improve customer experience, and marketing analytics helps them achieve this goal by enabling them to deliver the best value for money offerings and rate plans to their customers.</p>
+<p align='justify'>In this project, a real corporate dataset of a pilot marketing campaign from a telecommunication company will be used. This pilot marketing campaign was launched by ZenTel (pseudonym due to confidentiality), which is one of the largest telecommunication companies in Malaysia. In order to improve user and customer experience, ZenTel has recently proposed to migrate their existing telco platform to a more advanced platform that provides seamless and excellent experience to their customers. The company aims to migrate all customers’ old rate plans to a newer rate plan at a lower cost with better benefits, and they have launched an initiative called “Right Planning” to achieve this goal. </p>
+<p align='justify'>To evaluate the efficacy of the proposed campaign, the Base Management Team at ZenTel conducted a trial run with a select group of customers before officially launching "Right Planning" to their seven million customers. In this project, a sample size of customers was selected to evaluate the effectiveness of the campaign. ZenTel's objective through this project is to improve the customer experience by introducing new rate plans that provide superior benefits and offers, while simultaneously eliminating obsolete rate plans and establishing uniformity in the information regarding rate plans stored in the new platform.</p><br>
+
+# Problem Statement
+
+### Classification problem statement:
+<p align='justify'>The goal of this project is to determine which customers will opt-in for the migration plan by predicting the offer taker indicator based on customer information such as tenure, age, gender, nationality, state, and other factors. This will help ZenTel to understand the characteristics of customers who are likely to accept the new rate plan and offer better services to them in the future.</p>
+
+### Regression problem statement:
+<p align='justify'>The aim of this project is to predict the total amount of data charged before the campaign launched using variables such as customer age, gender, nationality, state, and other factors. This will allow ZenTel to estimate the revenue generated from data usage before the campaign, which can help the company to optimize pricing strategies for data services.</p>
+
+# Research Questions
+
+1.	What are the key factors that influence customers to opt-in for the migration campaign?
+2.	Can we accurately predict which customers will opt-in for the migration campaign?
+3.	What is the estimated revenue generated from data usage before the campaign?
+
+# Research Objective
+
+1.	To identify the key factors that influence customers to opt-in for the migration campaign.
+2.	To develop a classification model that accurately predicts which customers will opt-in for the migration campaign.
+3.	To estimate the revenue generated from data usage before the campaign using regression techniques.
+
+# Methodology
+
+1. Content
+2. Content
+3. Content<br>
+
+```{r lmport-libraries, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+install.packages("readxl")
+install.packages("caret")
+install.packages("pryr")
+install.packages("corrplot")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("coefplot")
+install.packages("infotheo")
+install.packages("lubridate")
+install.packages("randomForest")
+install.packages("Rcpp")
+install.packages("devtools")
+install.packages("tidyr")
+install.packages("reshape2")
+install.packages("cowplot")
+```
+
+# Results
+
+```{r load-libraries, message=FALSE, warning=FALSE, include=FALSE}
+library(readxl)
+library(pryr)
+library(Rcpp)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(dplyr)
+library(caret)
+library(randomForest)
+library(devtools)
+library(infotheo)
+library(corrplot)
+library(reshape2)
+library(coefplot)
+library(cowplot)
+library(e1071)
+```
+
+## Sample
+<p align='justify'>The dataset collected is a set of campaign data with customer levels information including customers’ demographic information, usage, and revenue activity before and after the campaign, with a total of 7272 records and 27 variables. </p>
+
+```{r data}
+dataframe = read_excel("dataset/7k dataset.xlsx")
+dataframe
+```
+
+### Metadata
+The metadata of the telco campaign data:
+```{r metadata}
+```
+
+## Data Exploration
+Drop all "AFTER" data columns which will not be used in this analysis
+```{r data-exploration}
+# Select and print out the "AFTER" columns
+cols_to_drop = grep("AFTER$", names(dataframe), value = TRUE)
+print(cols_to_drop)
+```
+```{r}
+# Drop the "AFTER" columns
+dataframe[, cols_to_drop] = NULL
+```
+
+The dataframe after removing "AFTER" is as below
+```{r data-info, echo=TRUE}
+#data info
+head(dataframe,10)
+```
+Check the dataframe properties like column header, number of columns and number of rows
+```{r echo=FALSE}
+cat("Columns info:", names(dataframe), "\nNumber of columns:", ncol(dataframe), "\nNumber of rows:", nrow(dataframe), "\n")
+```
+
+Check the structure of dataframe
+```{r}
+str(dataframe)
+```
+Check the count of unique values within the columns
+```{r}
+for (col in names(dataframe)) {
+  # get the unique values of the column
+  unique_count <- length(unique(dataframe[[col]]))
+  # print the column name and its unique values
+  cat("Unique value count of", col, "is:", unique_count, "\n")
+}
+```
+The summary of campaign data
+```{r data-summary, echo=TRUE}
+summary(dataframe)
+```
+<p align='justify'>From the Data Exploration, the `AGE` contains a minimum age of -9999, which seems to be abnormal as human age should between range of 0 to 100 only but not negative values. This phenomenon occurred because customers’ age information was missing due to system or human error thus replacing with -9999. Based on the metadata, `ARPU_BEFORE`, `CPA_RVN_BEFORE`, `DATA_CHRG_BEFORE` and `RLD_AMT_BEFORE` are numeric columns instead of character. Upon checking in the dataset, these columns were filled up with `?` which make the columns type as character. The `STATE` and `GENDER`also contain inconsistency data where Malaysia only has 13 states and 3 federals but it contains 20 unique values, while gender commonly only has 2 values instead of 4.Therefore, variables `AGE`, `GENDER`, `STATE`, `ARPU_BEFORE`, `CPA_RVN_BEFORE`, `DATA_CHRG_BEFORE` and `RLD_AMT_BEFORE` need to undergo data cleaning and pre-processing to ensure the data is cleaned before further analysis and modelling. The violin plots and bar charts below also showing the distribution of each feature.</p><br>
+
+#### Distribution of Each Feature Before Data Preprocessing:<br>
+
+```{r functions, include=FALSE}
+# This part load the functions from functions.R
+source("functions.R")
+```
+
+```{r plots_before, echo=FALSE, message=FALSE, warning=FALSE}
+data_profiling(dataframe)
+```
+<p align='justify'>From the plots, there are some numeric columns should be in violin plot but identified as bar chart. This occurred may due to the inconsistent data type in numeric columns which need to undergo data preprocessing to clean the data.</p><br>
+
+## Data Preprocessing
+<p align='justify'>From previous section, there are certain parameters requires data cleaning to ensure the data quality. The first step is to remove the unnecessary column that cannot be used to differentiate the offer taker for telco campaign, which are the `NATIONALITY`, `STATUS_BEFORE` and `OFFER_TAKE_UP_DT`.</p>
+
+```{r drop_columns_class, echo=TRUE}
+# drop columns
+dataframe = subset(dataframe, select = -c(NATIONALITY, STATUS_BEFORE, OFFER_TAKE_UP_DT))
+```
+
+<p align='justify'>The next step is to cater the irrelevant and missing data like `?` and `-9999` within the dataframe by replacing these values with `NA` value. The numeric value also standardized into 2 decimal points.</p>
+
+```{r replace_msvalue, echo=TRUE}
+# replace "?" and "-9999" values to "NA"
+dataframe = replace(dataframe, dataframe=='?', NA)
+dataframe = replace(dataframe, dataframe=='-9999', NA)
+
+# format the numeric into 2 decimal points
+dataframe$DATA_CHRG_BEFORE = round(as.numeric(dataframe$DATA_CHRG_BEFORE), 2)
+dataframe$RLD_AMT_BEFORE = round(as.numeric(dataframe$RLD_AMT_BEFORE), 2)
+dataframe$CPA_RVN_BEFORE = round(as.numeric(dataframe$CPA_RVN_BEFORE), 2)
+dataframe$ARPU_BEFORE = round(as.numeric(dataframe$ARPU_BEFORE), 2)
+```
+
+Check again the dataframe to identify the differences from plots.<br>
+```{r plots_after, echo=FALSE, message=FALSE, warning=FALSE}
+data_profiling(dataframe)
+```
+
+Now, replace the `NA` values to 0 if the data are numeric and `"Unspecified"` in `GENDER` column.
+```{r replace_na, echo=TRUE}
+# replace all "NA" to 0 for numeric columns, "Unspecified" for GENDER column
+dataframe$ARPU_BEFORE = replace(dataframe$ARPU_BEFORE, is.na(dataframe$ARPU_BEFORE), 0)
+dataframe$CPA_RVN_BEFORE = replace(dataframe$CPA_RVN_BEFORE, is.na(dataframe$CPA_RVN_BEFORE), 0)
+dataframe$RLD_AMT_BEFORE = replace(dataframe$RLD_AMT_BEFORE, is.na(dataframe$RLD_AMT_BEFORE), 0)
+dataframe$DATA_CHRG_BEFORE = replace(dataframe$DATA_CHRG_BEFORE, is.na(dataframe$DATA_CHRG_BEFORE), 0)
+dataframe$AGE = replace(dataframe$AGE, is.na(dataframe$AGE), 0)
+
+dataframe$GENDER = replace(dataframe$GENDER, is.na(dataframe$GENDER), "Unspecified")
+```
+
+Print out the remaining `NA` value that persist in the dataframe.
+```{r print_na, echo=TRUE}
+# check na occurrence again
+null_counts = colSums(is.na(dataframe))
+print(null_counts)
+```
+Check the unique value within `STATE` column.
+```{r check_state, echo=TRUE}
+print(unique(dataframe$STATE))
+```
+There are duplicated state name which are not standardized. Reclassify the data in the `STATE` column to get the correct representation of state name.
+```{r reclassify_state, echo=TRUE}
+#alter state columns
+dataframe$STATE[dataframe$STATE == "JOHORE"] = "JOHOR"
+dataframe$STATE[dataframe$STATE == "KLANG VALLEY"] = "WILAYAH PERSEKUTUAN"
+dataframe$STATE[dataframe$STATE == "MALACCA"] = "MELAKA"
+dataframe$STATE[dataframe$STATE == "N SEMBILAN"] = "NEGERI SEMBILAN"
+dataframe$STATE[dataframe$STATE == "PULAU PINANG"] = "PENANG"
+dataframe$STATE[dataframe$STATE == "SEREMBAN/MELAKA"] = "MELAKA"
+print(unique(dataframe$STATE))
+```
+Check again the data structure for dataframe.
+```{r check_str, echo=TRUE}
+str(dataframe)
+```
+To find out the correlation of each feature, the categorical variables like `GENDER`, `STATE`, `DATA_PURC_BEFORE` and `RLD_IND_BEFORE` needed to be convert into numeric type by applying one-hot encoding.
+```{r one_hot, echo=TRUE}
+# one-hot the categorical variables
+cols_to_encode = c("GENDER", "STATE", "DATA_PURC_BEFORE", "RLD_IND_BEFORE")
+one_hot = dummyVars(" ~ .", data = dataframe[, cols_to_encode])
+encoded_df = data.frame(predict(one_hot, newdata = dataframe))
+head(encoded_df, 10)
+```
+
+### Feature Selection
+```{r correlation, echo=TRUE}
+# correlation check for non categorical and plot heatmap
+non_encoded_cols = setdiff(colnames(dataframe), cols_to_encode)
+test_df = dataframe[, non_encoded_cols]
+test_df = subset(test_df, select = -OFFER_TAKER)
+```
+
+#### Heatmap
+```{r heatmap, echo=FALSE}
+cormat = round(cor(test_df),2)
+upper_tri = get_upper_tri(cormat)
+melted_cormat = melt(upper_tri, na.rm = TRUE)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  coord_fixed()
+```
+
+
+## Modeling
+<p align='justify'>In order to predict which customers will opt-in for the migration campaign, a classification model will be trained. Additionally, a regression model will be utilized to estimate the revenue generated from data usage prior to the campaign.</p>
+
+### Classification
+Before training a classification model, the high correlation columns will be removed and combine with the one-hot columns from previous section.
+```{r drop_corr_cols, echo=TRUE}
+# drop high correlation column and combine one hot encode column 
+merged_df = cbind(dataframe[, non_encoded_cols], encoded_df)
+final_df = subset(merged_df, select = c(-CPA_RVN_BEFORE, -ARPU_BEFORE))
+print(colnames(final_df))
+```
+Assign the target variable
+```{r asg_tar, echo=TRUE}
+#assign target
+final_df$target = ifelse(final_df$OFFER_TAKER == "Y", 1, 0)
+final_df = subset(final_df, select = -OFFER_TAKER)
+head(final_df, 10)
+```
+Split the dataframe to train and test set
+```{r split_tt_cat, echo=TRUE}
+# Split the data into training and testing sets
+train_idx = createDataPartition(final_df$target, p = 0.8, list = FALSE)
+train_data = final_df[train_idx,]
+test_data = final_df[-train_idx,]
+```
+
+#### Random Forest Classifier selected as classification model
+```{r rf_cl, echo=TRUE}
+# Train the Random Forest Classifier
+classifier_RF = randomForest(x = train_data[, -ncol(train_data)],
+                             y = as.factor(train_data$target),
+                             ntree = 500,
+                             importance = TRUE)
+
+# Make predictions on the test data
+preds = predict(classifier_RF, newdata = test_data[, -ncol(test_data)])
+
+# Calculate the confusion matrix/ accuracy of the predictions
+conf_mat = table(preds, test_data$target)
+accuracy = sum(diag(conf_mat)) / sum(conf_mat)
+
+# print out the model's hyperparameter 
+cat("Random Forest Classifier's Hyperparameter:\n")
+print(classifier_RF)
+```
+
+Print out the output for Random Forest Classifier's confusion matrix and the accuracy.
+```{r rf_output, echo=FALSE}
+# print output
+cat("Confusion Matrix (Prediction):\n")
+print(conf_mat)
+cat("\n")
+cat("Accuracy of Random Forest Classifier:", round(accuracy, 3), "\n")
+```
+#### KNN Classifier selected as classification model
+```{r knn_cl, echo=TRUE}
+# Train the KNN Classifier
+classifier_KNN <- train(x = train_data[, -ncol(train_data)],
+                        y = as.factor(train_data$target),
+                        method = "knn",
+                        trControl = trainControl(method = "none"),
+                        preProcess = c("center", "scale"))
+
+# Make predictions on the test data
+preds_KNN <- predict(classifier_KNN, newdata = test_data[, -ncol(test_data)])
+
+# Calculate the confusion matrix/ accuracy of the predictions
+conf_mat_KNN <- table(preds_KNN, test_data$target)
+accuracy_KNN <- sum(diag(conf_mat_KNN)) / sum(conf_mat_KNN)
+
+# print out the model's hyperparameter 
+cat("KNN Classifier's Hyperparameter:\n")
+print(classifier_KNN)
+```
+
+Print out the output for KNN Classifier, confusion matrix and the accuracy.
+```{r knn_output, echo=FALSE}
+# print output
+cat("Confusion Matrix (Prediction):\n")
+print(conf_mat_KNN)
+cat("\n")
+cat("Accuracy of KNN Classifier:", round(accuracy_KNN, 3), "\n")
+```
+#### SVM Classifier selected as classification model
+```{r svm_cl, echo=TRUE}
+# Train the SVM Classifier
+classifier_SVM <- svm(x = train_data[, -ncol(train_data)],
+                      y = as.factor(train_data$target),
+                      kernel = "radial")
+
+# Make predictions on the test data
+preds_SVM <- predict(classifier_SVM, newdata = test_data[, -ncol(test_data)])
+
+# Calculate the confusion matrix/ accuracy of the predictions
+conf_mat_SVM <- table(preds_SVM, test_data$target)
+accuracy_SVM <- sum(diag(conf_mat_SVM)) / sum(conf_mat_SVM)
+
+# print out the model's hyperparameter 
+cat("SVM Classifier's Hyperparameter:\n")
+print(classifier_SVM)
+```
+
+Print out the output for SVM Classifier, confusion matrix and the accuracy.
+```{r svm_output, echo=FALSE}
+# print output
+cat("Confusion Matrix (Prediction):\n")
+print(conf_mat_SVM)
+cat("\n")
+cat("Accuracy of svm Classifier:", round(accuracy_SVM, 3), "\n")
+```
+<p align='justify'>Throughout the performance for these classifiers, Random Forest classifier has the highest accuracy hence it is selected as the best classification model.</p><br>
+
+#### Feature Importance for Selected Classifiers
+Display all feature importance for Random Forest Classifiers.
+```{r c_imp, echo=TRUE}
+#feature important
+imp_RF <- importance(classifier_RF)
+cat("Random Forest Feature Importance:\n")
+print(imp_RF)
+```
+
+### Regression
+Before training a regression model, the categorical columns will be removed and combine with the one-hot encoded columns.
+
+```{r drop_cat, echo=TRUE}
+# drop category
+non_cat_df = dataframe[, non_encoded_cols]
+final_df = subset(non_cat_df, select = c(-CPA_RVN_BEFORE, -ARPU_BEFORE, -OFFER_TAKER))
+print(colnames(final_df))
+```
+Split the dataframe to train and test set
+```{r split_tt_reg, echo=TRUE}
+# Split the data into training and testing sets
+train_idx = createDataPartition(final_df$DATA_CHRG_BEFORE, p = 0.8, list = FALSE)
+train_data = final_df[train_idx,]
+test_data = final_df[-train_idx,]
+```
+
+
+Scale the train-test data and assign target for regression model
+```{r reg_tar, echo=TRUE}
+# scaling
+train_data_scaled = train_data %>%
+  select(-DATA_CHRG_BEFORE) %>%
+  scale() %>%
+  as.data.frame() %>%
+  cbind(train_data$DATA_CHRG_BEFORE)
+
+colnames(train_data_scaled)[6] = "target"
+```
+
+#### Linear Regression selected as Regression Model
+```{r lr, echo=TRUE}
+# regression
+lm_model = lm(target ~ ., data = train_data_scaled)
+
+#predict 
+test_data_scaled = test_data %>%
+  select(-DATA_CHRG_BEFORE) %>%
+  scale() %>%
+  as.data.frame() %>%
+  cbind(test_data$DATA_CHRG_BEFORE)
+predictions = predict(lm_model, newdata = test_data_scaled)
+
+colnames(test_data_scaled)[6] = "target"
+```
+
+Print out the performance of model
+```{r lr_output,echo=TRUE}
+#result
+RMSE = sqrt(mean((predictions - test_data_scaled$target)^2))
+R2 = cor(predictions, test_data_scaled$target)^2
+```
+
+```{r lr_out,echo=FALSE}
+cat("Performance of Linear Regression:\n\nRMSE:", RMSE,"\nR-squared:", R2)
+```
+
+Coefficient of Linear Regression model
+```{r lr_coe,echo=FALSE}
+coefplot(lm_model)
+```
+
+## Conclusion
+
+TBD
+
+## Citation
+Cote, C. (2021, January 21). What is marketing analytics?: HBS Online. Retrieved April 28, 2023, from https://online.hbs.edu/blog/post/what-is-marketing-analytics. 
