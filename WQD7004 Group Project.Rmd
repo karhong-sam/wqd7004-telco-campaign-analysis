@@ -1,0 +1,657 @@
+---
+title: Customer Behavior Analysis and Predictive Modelling of Telco Campaign Offer Takers
+author: "Khar Shin Yin (Leader), Kar Hong Sam, Rose Tiong, Wei Qin Lee, Xing Zhao Chua"
+date: "`r format(Sys.Date(), '%d-%m-%Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Introduction
+<p align='justify'>**Marketing analytics** refers to the study of customer data to evaluate and devise marketing activities which has been widely incorporated by businesses across the globe especially in the telecommunications industry. In depth, analysis of the customer data was used to determine the main factors of consumer action, then enhance the company marketing strategies and maximize return on investments from the wonders of their marketing analytics (Cote, 2021).</p>
+
+<p align='justify'>In this project, a real corporate dataset of a pilot campaign launched by a telecommunication company was used, herein referred to as ZenTel (pseudonym due to confidentiality). ZenTel is one of the largest telecommunication companies in Malaysia which has been employing customer-centric solutions to facilitate seamless, consistent, and excellent customer experiences by delivering the best value for money offerings and rate plans to its customers.</p>
+
+
+## Problem Statement 
+<p align='justify'>ZenTel had recently proposed to migrate their existing telco platform to a more advanced platform to improve user and customer experience. To optimise the platform migration, ZenTel had decided to come up with an initiative called “Right Planning”, which aimed to migrate all customers’ old rate plan to a newer rate plan at a lower cost with better benefits. With “Right Planning”, ZenTel was able to enlighten customer experience with new rate plans with better benefits and offers, at the same time, remove the outdated rates plans and standardise the rate plans information stored in the new platform.</p>
+
+<p align='justify'>To evaluate the efficacy of the proposed campaign, the Base Management Team at ZenTel conducted a trial run by selecting a group of customers before officially launching the "Right Planning" to their seven million customers.The aim goal of the study is to evaluate the pilot campaign effectiveness by introducing new rate plans that provide superior benefits and offers and understand customer behavior whom tends to take up the offer, while simultaneously eliminating obsolete rate plans and establishing uniformity in the information regarding rate plans stored in the new platform.</p>
+
+
+## Research Questions
+<p align='justify'>
+1. **EDA**: How effective is the "Right Planning" pilot campaign in terms of customer participation?
+2. **EDA**: What are the demographic and behavioral characteristics of customers who are more likely to opt-in for the "Right Planning" pilot campaign?
+3. **Classification**: How can we accurately predict which customers will opt-in for the "Right Planning" campaign based on their usage and revenue behavior?
+4. **Regression**: How revenue generated before the "Right Planning" campaign correlates with the customers' behavior in terms of usage?<p>
+
+## Research Objectives
+<p align='justify'>
+1. To evaluate the effectiveness of the "Right Planning" pilot campaign.
+2. To identify the campaign offer takers' profile. 
+3. To develop a classification model which accurately predicts if the customers will opt-in for the "Right Planning" campaign based on usage and revenue behavior. 
+4. To investigate the relationship between the customers' behavior in terms of usage and revenue generated before the campaign using multiple linear regression.<p>
+
+
+## Dataset Description
+<p align='justify'>
+- A set of real dataset provided by the Base Management Team in one of the largest telecommunication companies in Malaysia. 
+- A total of 7272 records campaign data that launched between 5th October 2022 and 11th October 2022.
+- Target base is a group of active Prepaid Malaysian customers.
+- Dataset contains the target base’ demographic information, usage, and revenue activity before and after the campaign.</p>
+
+
+## Methodology 
+<p align='justify'>This section displayed the steps from data understanding, data exploration, data cleaning, data-preprocessing and data transformation before conducting data analysis and predictive modelling.</p>
+
+### Part 1: Import and Load Libraries
+```{r lmport-libraries, eval=FALSE, message=FALSE, warning=FALSE}
+# Install required packages
+install.packages(c("readxl", "caret", "pryr", "corrplot", "dplyr", "ggplot2", "coefplot", "infotheo", "lubridate", "randomForest", "Rcpp", "devtools", "tidyr", "reshape2", "cowplot","e1071"))
+```
+
+```{r load-libraries, message=FALSE, warning=FALSE}
+# Load installed packages
+library(readxl)
+library(knitr)
+library(caret)
+library(pryr)
+library(corrplot)
+library(dplyr)
+library(ggplot2)
+library(coefplot)
+library(infotheo)
+library(lubridate)
+library(randomForest)
+library(Rcpp)
+library(devtools)
+library(tidyr)
+library(reshape2)
+library(cowplot)
+library(e1071)
+```
+
+
+### Part 2: Metadata & Dataset Overview (Before Data Cleaning)
+Table below shows the metadata of the dataset collected.
+```{r metadata}
+# Load metadata 
+metadata <- read_excel("/Users/kharshin/Campaign_Dataset_Description.xlsx")
+kable(metadata)
+```
+
+Table below shows the first 5 rows of the dataset collected.
+```{r data}
+# Load dataset
+dataset <- read_excel("/Users/kharshin/Dataset.xlsx")
+head(dataset, n = 5)
+```
+
+<br>This section displayed the information of:<br>
+i. Number of columns and rows
+```{r columns rows, message=FALSE, warning=FALSE}
+cat("Number of columns:", ncol(dataset), "\nNumber of rows:", nrow(dataset))
+```
+<p align='justify'>A total of 27 columns and 7,272 records.</p><br>
+
+ii. Structure
+```{r structure, message=FALSE, warning=FALSE}
+str(dataset)
+```
+<p align='justify'>
+There is a total of 7 numerical columns and 20 categorical columns. However, several numerical columns are misclassified as categorical because the blank or missing values are automatically detected as a string of `?` in R. Columns affected are `RLD_AMT_BEFORE`, `RLD_AMT_AFTER`, `CPA_RVN_BEFORE`, `CPA_RVN_AFTER`, `ARPU_BEFORE`, `ARPU_AFTER`, `DATA_PURC_BEFORE` and `DATA_PURC_AFTER`. Meanwhile, `OFFER_TAKE_UP_DT` is misclassified as numerical but it is actually a date variable.</p><br>
+
+iii. Count of missing values within the columns
+```{r missing_values}
+# Check missing values in categorical columns and print column names if there are null values
+cat_missing <- sapply(dataset, function(x) {
+  if (is.factor(x) && sum(is.na(x)) > 0) {
+    cat("Column:", names(x), "has", sum(is.na(x)), "missing value(s).\n")
+  }
+  sum(is.na(x))
+})
+
+# Check missing values in numerical columns and print column names if there are null values
+num_missing <- sapply(dataset, function(x) {
+  if (is.numeric(x) && sum(is.na(x)) > 0) {
+    cat("Column:", names(x), "has", sum(is.na(x)), "missing value(s).\n")
+  }
+  sum(is.na(x))
+})
+```
+<p align='justify'>No missing values are found but based on the view in the dataset structure, there are `?` missing values within the columns. Hence, data cleaning is required.</p><br>
+
+
+### Part 3: Exploratory Data Analysis 
+<p align='justify'>This section displayed the graph distributions for all the columns of the dataset. Violin plots and bar charts are used.</p>
+```{r graphs-before, warning=FALSE}
+# Create function to perform data profiling on a data frame
+# Input: x - data frame
+# Output: Prints plots for numeric columns and categorical columns
+data_profiling = function(x) {
+  
+  # Iterate over column names
+  for (col_name in colnames(x)) {
+    
+    # Check if column is numeric
+    if (is.numeric(x[[col_name]])) {
+      
+      # Generate violin plot for numeric columns
+      p = ggplot(x, aes(x = col_name, y = x[[col_name]], fill = col_name)) +
+        geom_violin() +
+        labs(x = "Column", y = "Range", title = paste("Violin Plot of", col_name)) +
+        theme_minimal() 
+      print(p)
+      
+    }
+    
+    # Column is not numeric (assumed categorical)
+    else {
+      # Calculate counts for each category
+      counts = table(x[[col_name]])
+      
+      # Create a data frame for plotting
+      df_counts = data.frame(category = names(counts), count = as.numeric(counts))
+      
+      # Generate bar plot for categorical columns
+      p = ggplot(df_counts, aes(x = count, y = category)) +
+        geom_col(fill = "steelblue") +
+        labs(x = "Count", y = "Category", title = paste("Bar Plot of", col_name)) +
+        theme_minimal() 
+      print(p)
+    }
+  }
+}
+
+# Display graphs
+data_profiling(dataset)
+```
+
+<p align='justify'>Based on the graphs,it can be observed that:</p>
+
+<p align='justify'>-`AGE` contains a minimum age of -9999, which seems to be abnormal as human age should between range of 0 to 100 only but not negative values. This phenomenon occurred because customers’ age information was missing due to system or human error thus replacing with -9999.</p>
+
+<p align='justify'>-`ARPU_BEFORE`,`ARPU_AFTER`, `CPA_RVN_BEFORE`, `CPA_RVN_AFTER`, `DATA_CHRG_BEFORE`,`DATA_CHRG_AFTER`, `RLD_AMT_BEFORE`, and `RLD_AMT_AFTER` are futher justified as numeric instead of categorical. Upon checking, these columns were filled up with `?` instead of `0` values which wrongly tagged them as a class variable.</p>
+
+<p align='justify'>-`STATE` contained inconsistency data where Malaysia comprises 13 states and 3 federal territories only but the graphs showed 20 unique values.</p>
+
+<p align='justify'>-`GENDER` commonly only has 2 unique values of male and female but there are 4 different values.</p>
+
+<p align='justify'>-`OFFER_TAKE_UP_DT` consists of null values and date values.</p>
+
+<p align='justify'>`AGE`, `GENDER`, `STATE`, `ARPU_BEFORE`, `ARPU_AFTER`, `CPA_RVN_BEFORE`, `CPA_RVN_AFTER`, `DATA_CHRG_BEFORE`, `DATA_CHRG_AFTER`, `RLD_AMT_BEFORE` and `RLD_AMT_AFTER` and `OFFER_TAKE_UP_DT` need to undergo data cleaning and pre-processing to ensure the data is cleaned before further analysis and modelling.</p><br>
+
+
+### Part 4: Data Cleaning
+<p align='justify'>This section displayed data cleaning for all the four data quality issues (inconsistent data, intentional data, incomplete data and noisy data) found in the dataset as mentioned in Exploratory Data Analysis section.</p>
+
+i. Modify intentional data - AGE 
+```{r age}
+# Remove records of 'AGE' with value '-9999'
+dataset <- subset(dataset, AGE != -9999)
+```
+<p align='justify'>Records with values of `-9999` representing no record is stated for the customer age. Thus, these records are then removed as they did not bring any useful information.</p><br>
+
+ii. Modify incomplete data - Replace `?` to `NA` then fill with 0
+```{r replace_na, echo=TRUE}
+# replace "?" to "NA"
+dataset <- replace(dataset, dataset=='?', NA)
+
+# replace "NA" with 0
+dataset$ARPU_BEFORE = replace(dataset$ARPU_BEFORE, is.na(dataset$ARPU_BEFORE), 0)
+dataset$ARPU_AFTER = replace(dataset$ARPU_AFTER, is.na(dataset$ARPU_AFTER), 0)
+dataset$CPA_RVN_BEFORE = replace(dataset$CPA_RVN_BEFORE, is.na(dataset$CPA_RVN_BEFORE), 0)
+dataset$CPA_RVN_AFTER = replace(dataset$CPA_RVN_AFTER, is.na(dataset$CPA_RVN_AFTER), 0)
+dataset$RLD_AMT_BEFORE = replace(dataset$RLD_AMT_BEFORE, is.na(dataset$RLD_AMT_BEFORE), 0)
+dataset$RLD_AMT_AFTER = replace(dataset$RLD_AMT_AFTER, is.na(dataset$RLD_AMT_AFTER), 0)
+dataset$DATA_CHRG_BEFORE = replace(dataset$DATA_CHRG_BEFORE, is.na(dataset$DATA_CHRG_BEFORE), 0)
+dataset$DATA_CHRG_AFTER = replace(dataset$DATA_CHRG_AFTER, is.na(dataset$DATA_CHRG_AFTER), 0)
+```
+<p align='justify'>Columns which mistagged as categorical with values of `?` is replaced with `NA` then `0`, are now corrected to numerical data type. `0` is chosen to replace the unknown values due to the business logic in which null is shown when no mapping results.</p><br>
+
+iii. Modify inconsistent data - STATE 
+```{r state, echo=TRUE}
+# Standardize the name for the states
+dataset$STATE[dataset$STATE == "JOHORE"] = "JOHOR"
+dataset$STATE[dataset$STATE == "KLANG VALLEY"] = "WILAYAH PERSEKUTUAN"
+dataset$STATE[dataset$STATE == "MALACCA"] = "MELAKA"
+dataset$STATE[dataset$STATE == "N SEMBILAN"] = "NEGERI SEMBILAN"
+dataset$STATE[dataset$STATE == "PULAU PINANG"] = "PENANG"
+dataset$STATE[dataset$STATE == "SEREMBAN/MELAKA"] = "MELAKA"
+```
+<p align='justify'>The inconsistencies in the naming of the states where the names are mixed with Malay and English that caused the duplicate values in the variable are standardzied using English naming convention.</p><br>
+
+iv. Modify inconsistent data - GENDER
+```` {r gender}
+dataset$GENDER = replace(dataset$GENDER, is.na(dataset$GENDER), "Unspecified")
+dataset <- subset(dataset, GENDER != "Unspecified")
+```
+<p align='justify'>The values of `Unspecified` and `?` (which then replaced with `NA`) are grouped together as they represented unknown gender.These group of people are then removed from the dataset and the GENDER variable consists only the value of Male and Female.</p><br>
+
+v. Modify incomplete data - OFFER_TAKE_UP_DT
+<p align='justify'>`OFFER_TAKE_UP_DT` which was supposed to be in date format, will still remained as string data type as if the corresponding cell of the `OFFER_TAKER` attribute is `No`, it meant the customer did not take up the offer and naturally there would not be any offer take-up date recorded. This variable is then removed as dates do not bring any meaningful information in this study.</p><br>
+
+vi. Standardize the numeric values into 2 decimal place
+```{r decimal}
+# Format the numeric into 2 decimal points
+dataset$ARPU_BEFORE = round(as.numeric(dataset$ARPU_BEFORE), 2)
+dataset$ARPU_AFTER = round(as.numeric(dataset$ARPU_AFTER), 2)
+dataset$CPA_RVN_BEFORE = round(as.numeric(dataset$CPA_RVN_BEFORE), 2)
+dataset$CPA_RVN_AFTER = round(as.numeric(dataset$CPA_RVN_AFTER), 2)
+dataset$RLD_AMT_BEFORE = round(as.numeric(dataset$RLD_AMT_BEFORE), 2)
+dataset$RLD_AMT_AFTER = round(as.numeric(dataset$RLD_AMT_AFTER), 2)
+dataset$DATA_CHRG_BEFORE = round(as.numeric(dataset$DATA_CHRG_BEFORE), 2)
+dataset$DATA_CHRG_AFTER = round(as.numeric(dataset$DATA_CHRG_AFTER), 2)
+```
+<p align='justify'> </p><br>
+
+vii. Modify noisy data - Outliers 
+<p align='justify'>The variables associated with this data quality issue were `ARPU_BEFORE`, `ARPU_AFTER`, `CPA_RVN_BEFORE`, `CPA_RVN_AFTER`, `DATA_CHRG_BEFORE`, `DATA_CHRG_AFTER`, `RLD_AMT_BEFORE`, `RLD_AMT_AFTER`, `DATA_USG_BEFORE`, `DATA_USG_AFTER`, `VOICE_USG_BEFORE`, `VOICE_USG_AFTER`, `AGE` and `TENURE`.
+Based on domain knowledge, these extreme values carried informative insights.Outliers detected in these variables are not removed as the extreme values are legitimate
+observations that were part of the sample which currently studying, thus leaving it in the dataset.</p><br>
+
+viii. Remove columns which is meaningless and will not be used for the analysis from the study
+```{r remove-columns}
+# Drop the "meaningless" columns 
+dataset = subset(dataset, select = -c(NATIONALITY, STATUS_BEFORE, OFFER_TAKE_UP_DT))
+
+# Backup the cleaned dataset for analysis 
+cleaned_dataset <- dataset
+
+# Select and print out the "AFTER" columns
+cols_to_drop = grep("AFTER$", names(dataset), value = TRUE)
+
+# Drop the "AFTER" columns
+dataset[, cols_to_drop] = NULL
+```
+<p align='justify'>As mentioned previously, the campaign is launched between a specific date and the group of customers involved are active Prepaid Malaysian customers. Hence, `NATIONALITY`, `STATUS_BEFORE` and `OFFER_TAKE_UP_DT` is not needed in the analysis. All the variables with naming of `AFTER` is removed as these variables are needed when there's a need to study the performance of pre-campaign and post-campaign.</p><br>
+
+
+### Part 5: Dataset Overview (After Data Cleaning) 
+<p align='justify'>This section displayed the data overview after data cleaning.</p>
+```{r data-check-NA, echo=TRUE}
+# Check missing values
+colSums(is.na(dataset))
+```
+
+```{r data-check-structure, echo=TRUE}
+# Check data structure
+str(dataset)
+```
+
+```{r data-check-overview, echo=TRUE}
+# Check first 5 rows of dataset
+head(dataset, n = 5)
+```
+
+<p align='justify'>There are a total of 7,157 records (after removing the intentional age and unknown gender) with 13 selected variables to continue our analysis such as
+`TENURE`, `AGE`, `GENDER`, `STATE`, `DATA_PURC_BEFORE`, `DATA_CHRG_BEFORE`, `DATA_USG_BEFORE`, `VOICE_USG_BEFORE`, `RLD_IND_BEFORE`, `RLD_AMT_BEFORE`, `CPA_RVN_BEFORE`, `ARPU_BEFORE` and `OFFER_TAKER`. No missing values are found and the type of variables are now correct.</p><br>
+
+
+### Part 6: Data Pre-Processing and Transformation
+<p align='justify'>This section explained how data is preprocessed before proceed to analysis and modelling. Categorical variables is transformed using one-hot encoding and heatmap is used to check the correlation between variables. Highly correlated variables will be dropped and dataset will be split into training (80%) and testing (20%) set.</p>
+
+i. Categorical variables such as `GENDER` and `STATE` are converted to numeric values by one-hot encoding, whereas `DATA_PURC_BEFORE` and `RLD_IND_BEFORE` are converted to numeric values using remapping method.
+```{r onehot, echo=TRUE}
+# Replace column values of "Y" with 1 and "N" with 0 
+dataset$DATA_PURC_BEFORE <- as.integer(ifelse(dataset$DATA_PURC_BEFORE == "Y", 1, ifelse(dataset$DATA_PURC_BEFORE == "N", 0, dataset$DATA_PURC_BEFORE)))
+dataset$RLD_IND_BEFORE <- as.integer(ifelse(dataset$RLD_IND_BEFORE == "Y", 1, ifelse(dataset$RLD_IND_BEFORE == "N", 0, dataset$RLD_IND_BEFORE)))
+
+# Apply one-hot encoding to the categorical variables
+cols_to_encode = c("GENDER", "STATE")
+one_hot = dummyVars(" ~ .", data = dataset[, cols_to_encode])
+encoded_df = data.frame(predict(one_hot, newdata = dataset))
+
+# Preview the first 5 rows
+head(encoded_df, 5)
+```
+<p align='justify'> Although variables `GENDER` and `STATE` have undergone data transformation, they will not be included in modelling as demographic variables will create bias towards the prediction output. For instance, it is impossible for Zentel to launch a campaign only for male and specific state such as Sabah only. The campaign launched should targets every customer.</p><br>
+
+ii. Select numerical variables and plot heatmap to investigate the correlation between numerical variables
+```{r correlation, echo=TRUE}
+# Select numeric variables 
+non_encoded_cols = setdiff(colnames(dataset), cols_to_encode)
+non_encoded_list = dataset[, non_encoded_cols]
+non_encoded_list = subset(non_encoded_list, select = -OFFER_TAKER)
+
+# Create function to extract the upper triangle of a correlation matrix
+# Input: cormat - correlation matrix
+# Output: upper triangle of the correlation matrix with lower triangle set to NA
+get_upper_tri = function(cormat){
+  
+  # Set lower triangle of the correlation matrix to NA
+  cormat[lower.tri(cormat)] <- NA
+  
+  # Return the modified correlation matrix
+  return(cormat)
+}
+
+# Plot heatmap 
+cormat = round(cor(non_encoded_list),2)
+upper_tri = get_upper_tri(cormat)
+melted_cormat = melt(upper_tri, na.rm = TRUE)
+ggplot(data = melted_cormat, aes(Var2, Var1, fill = value))+
+  geom_tile(color = "white")+
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))+
+  coord_fixed()
+```
+<p align='justify'> Based on the correlation plot, it can be observed that the pairs of `CPA_RVN_BEFORE`, `RLD_AMT_BEFORE` and `ARPU_BEFORE` and `DATA_CHRG_BEFORE` and `DATA_PURC_BEFORE` are highly correlated with each other. Hence,`CPA_RVN_BEFORE`, `RLD_AMT_BEFORE` and `DATA_CHRG_BEFORE` are dropped as these two variables are contributing to the value of ARPU. When the values increase, ARPU increase. On top of that, based on domain knowledge, `ARPU_BEFORE` is refering to the average spending of a customer which brings meaningful information.</p><br>
+
+iii. Remove high correlated variables  
+```{r drop-corrcols, echo=TRUE}
+# Remove high correlation columns 
+final_df = subset(non_encoded_list, select=c(-CPA_RVN_BEFORE, -RLD_AMT_BEFORE,-DATA_CHRG_BEFORE))
+```
+<p align='justify'> </p><br>
+
+iv. Assign target variable
+```{r target, echo=TRUE}
+# Assign target 
+final_df$OFFER_TAKER = ifelse(dataset$OFFER_TAKER == "Y", 1, 0)
+```
+<p align='justify'> </p><br>
+
+v. Split the dataset into train and test set 
+```{r split-train-test, echo=TRUE}
+# Set the random seed
+set.seed(123)
+
+# Split the data into train and test set 
+train_idx = createDataPartition(final_df$OFFER_TAKER, p = 0.8, list = FALSE)
+train_data = final_df[train_idx,]
+test_data = final_df[-train_idx,]
+
+# Check dimensions of train and test set 
+cat(" Dimensions of train data:", dim(train_data), "\n", "Dimensions of test data:", dim(test_data), "\n")
+```
+
+<p align='justify'>After performing the data pre-processing, data transformation, feature selection and train test split, a total of 7 independent variables will be used to train the model.</p><br>
+
+
+## Results and Findings
+<p align='justify'>This section displayed the results and discussion for all the 4 research objectives.</p>
+
+### Objective 1: Effectiveness of "Right Planning" Pilot Campaign
+<p align='justify'>Effectiveness of "Right Planning pilot campaign is evaluated by 2 aspects - the total count of offer takers among all customers and the total count of offer takers among all customers who stay active after the pilot campaign.</p>
+```{r obj1, warning=FALSE}
+# Count the frequencies of "Y" and "N" values in the column
+value_counts <- table(cleaned_dataset$OFFER_TAKER)
+value <- value_counts["Y"]
+# Calculate the percentage of offer takers only - "Y" 
+percentage_y <- (value_counts["Y"] / sum(value_counts)) * 100
+
+# Count the frequencies of customers who remain active after opted-in for the pilot campaign
+offertaker <- subset(cleaned_dataset, OFFER_TAKER == "Y")
+value_counts <- table(offertaker$ACTIVITY_STATUS_AFTER)
+# Calculate the sum of frequencies for the desired categories
+sum_active <- sum(value_counts[c("DURING & AFTER CAMP", "BEFORE & AFTER CAMP", "DURING CAMP THEN REMAIN")])
+# Calculate the percentage of active offer takers
+percentage_active <- sum_active / sum(value_counts) * 100
+
+# Display results
+message <- paste(" Number of offer takers:", value, "\n", "Percentage of offer takers:", round(percentage_y, 2), "%\n", "Number of customers who remain active after opted-in for the pilot campaign:", sum_active, "\n", "Percentage of customers who remain active after opted-in for the pilot campaign:", round(percentage_active, 2), "%\n")
+cat(message)
+``` 
+
+<p align='justify'> The above statistics indicating the pilot campaign launched was **moderately successful** because: </p>
+
+<p align='justify'>-The pilot campaign launched has a total number of 4,499 customers out of 7,157 who opted in for the new rate plans. The opt in rate for the campaign is 63%.</p>
+
+<p align='justify'>-There are 3,047 customers out of 4,499 opted-in customers who remain active after the campaign. The active rate is 68%.</p><br>
+
+
+### Objective 2: Offer Takers' Profile 
+<p align='justify'>The profile of offer takers is identified by observing the graph distribution grouped by offer taker. A more precise analysis can be done by conducting pivot table in future.</p>
+```{r graphs-after, warning=FALSE}
+data_profiling_after <- function(x, group_by_col) {
+  
+  # Iterate over column names
+  for (col_name in colnames(x)) {
+    
+    # Check if column is numeric
+    if (is.numeric(x[[col_name]])) {
+      
+      # Generate violin plot for numeric columns grouped by OFFER_TAKER
+      p <- ggplot(x, aes(x = col_name, y = x[[col_name]], fill = col_name)) +
+        geom_violin() +
+        labs(x = "Column", y = "Range", title = paste("Violin Plot of", col_name)) +
+        theme_minimal() +
+        facet_wrap(~get(group_by_col))
+      print(p)
+      
+    }
+    
+    # Column is not numeric (assumed categorical)
+    else {
+      # Calculate counts for each category grouped by OFFER_TAKER
+      counts <- table(x[[col_name]], x[[group_by_col]])
+      
+      # Create a data frame for plotting
+      df_counts <- data.frame(category = rownames(counts), count = as.numeric(counts), OFFER_TAKER = rep(colnames(counts), each = nrow(counts)))
+      
+      # Generate bar plot for categorical columns grouped by OFFER_TAKER
+      p <- ggplot(df_counts, aes(x = count, y = category, fill = OFFER_TAKER)) +
+        geom_col() +
+        labs(x = "Count", y = "Category", title = paste("Bar Plot of", col_name)) +
+        theme_minimal() +
+        facet_wrap(~get(group_by_col))
+      print(p)
+    }
+  }
+}
+
+# Display graphs grouped by OFFER_TAKER
+data_profiling_after(cleaned_dataset, "OFFER_TAKER")
+```
+
+<p align='justify'>Based on EDA, the customers who tend to take up the offer have the following characteristics:</p>
+
+<p align='justify'>-Campaign offer takers showed a higher numbers of opt in rate among **male** compared to female.</p>
+
+<p align='justify'>-Campaign offer takers are mostly from age group **between 22 and 36 years old** with **tenure more than 1 year**.</p>
+
+<p align='justify'>-Most of the campaign takers are mainly from **Klang Valley, then follow by Sabah and Sarawak**.</p>
+
+<p align='justify'>-Most of the campaign takers have **higher ARPU, higher CPA revenue, higher reload amount, higher voice and data usage and tends to purchase data plan**.</p>
+
+<p align='justify'>-Majority of the customers **remain active after the campaign** but 11 takers terminated their lines.</p><br>
+
+
+### Objective 3: Offer Takers' Predictive Modelling
+<p align='justify'>Three famous classification models are chosen to predict which customers will more likely to opt-in for the "Right Planning" campaign based on their usage and revenue behavior, which are Random Forest Classifier, K-Nearest Neighbor (KNN) and Support Vector machine (SVM). The best performed model will be chosen as the prediction model for this study.</p>
+
+<p align='justify'>Evaluation metric of accuracy will be used in evaluating the models' performance as the most common metric used to evaluate the performance of a classification predictive model is accuracy. On top of that, the dataset provided is consider a balanced dataset thus accuracy is chosen. </p>
+
+i. Random Forest Classifier
+```{r rf_cl, echo=TRUE, message=FALSE, warning=FALSE}
+# Set the random seed
+set.seed(123)
+
+# Train the Random Forest Classifier
+classifier_RF = randomForest(x = train_data[, -ncol(train_data)],
+                             y = as.factor(train_data$OFFER_TAKER),
+                             ntree = 500,
+                             importance = TRUE)
+
+# Make predictions on the test data
+preds = predict(classifier_RF, newdata = test_data[, -ncol(test_data)])
+
+# Calculate the confusion matrix/ accuracy of the predictions
+conf_mat_RF = table(preds, test_data$OFFER_TAKER)
+accuracy_RF = sum(diag(conf_mat_RF)) / sum(conf_mat_RF)
+```
+
+```{r rf-output}
+# Display output of confusion matrix and accuracy 
+outputRF <- paste("Confusion Matrix (Prediction):", paste(capture.output(print(conf_mat_RF)), collapse = "\n"), "\n", "Accuracy of Random Forest Classifier:", round(accuracy_RF * 100, 2), "%")
+cat(outputRF)
+```
+
+<p align='justify'> Random Forest model achieved an accuracy of 85.51%.</p><br>
+
+ii. K-Nearest Neighbor (KNN)
+```{r knn_cl, echo=TRUE, message=FALSE, warning=FALSE}
+# Set the random seed
+set.seed(123)
+
+# Train the KNN Classifier
+classifier_KNN <- train(x = train_data[, -ncol(train_data)],
+                        y = as.factor(train_data$OFFER_TAKER),
+                        method = "knn",
+                        trControl = trainControl(method = "none"),
+                        preProcess = c("center", "scale"))
+
+# Make predictions on the test data
+preds_KNN <- predict(classifier_KNN, newdata = test_data[, -ncol(test_data)])
+
+# Calculate the confusion matrix/ accuracy of the predictions
+conf_mat_KNN <- table(preds_KNN, test_data$OFFER_TAKER)
+accuracy_KNN <- sum(diag(conf_mat_KNN)) / sum(conf_mat_KNN)
+```
+
+```{r knn_output}
+# Display output of confusion matrix and accuracy 
+outputKNN <- paste("Confusion Matrix (Prediction):", paste(capture.output(print(conf_mat_KNN)), collapse = "\n"), "\n", "Accuracy of K-Nearest Neighbour:", round(accuracy_KNN * 100, 2), "%")
+cat(outputKNN)
+```
+
+<p align='justify'> K-Nearest Neighbor model achieved an accuracy of 81.76%.</p><br>
+
+iii. Support Vector Machine (SVM)
+```{r svm_cl, echo=TRUE, message=FALSE, warning=FALSE}
+# Set the random seed
+set.seed(123)
+
+# Train the SVM Classifier
+classifier_SVM <- svm(x = train_data[, -ncol(train_data)],
+                      y = as.factor(train_data$OFFER_TAKER),
+                      kernel = "radial")
+
+# Make predictions on the test data
+preds_SVM <- predict(classifier_SVM, newdata = test_data[, -ncol(test_data)])
+
+# Calculate the confusion matrix/ accuracy of the predictions
+conf_mat_SVM <- table(preds_SVM, test_data$OFFER_TAKER)
+accuracy_SVM <- sum(diag(conf_mat_SVM)) / sum(conf_mat_SVM)
+```
+
+```{r svm-output}
+# Display output of confusion matrix and accuracy 
+outputSVM <- paste("Confusion Matrix (Prediction):", paste(capture.output(print(conf_mat_SVM)), collapse = "\n"), "\n", "Accuracy of Support Vector Machine", round(accuracy_SVM * 100, 2), "%")
+cat(outputSVM)
+```
+
+<p align='justify'> Support Vector Machine model achieved an accuracy of 84.98%.</p><br>
+
+#### Feature Importance for Random Forest Classifiers
+```{r c_imp, echo=TRUE}
+# Feature importance
+imp_RF <- importance(classifier_RF)
+features <- paste("Random Forest Classifier Feature Importance:\n", paste(capture.output(print(imp_RF)), collapse = "\n"))
+cat(features)
+```
+
+<p align='justify'>Throughout the performance for these classifiers, **Random Forest Classifier** has the highest accuracy hence it is selected as the best classification model / predictive model in this study. A higher value in `Mean Decrease Accuracy` indicates that the feature has a stronger influence on the accuracy of the model. The top 5 important features are `DATA_PURC_BEFORE`, `ARPU_BEFORE`, `RLD_IND_BEFORE`, `TENURE` and `DATA_USG_BEFORE`. These variables can be used to predict if a customer tends to opt in for the new offer.</p>
+
+<p align='justify'>A customer tends to take up the offer of the campaign if the customer has the following characteristics: A longer tenure, high average revenue, perform reload before the campaign, purchase any data plan before the campaign and high data usage.  
+</p><br>
+
+
+### Objective 4: Relationship between Customers' Behavior (Usage) and Revenue Generated
+<p align='justify'>This section displayed the relationship between the customers' behavior in terms of usage and revenue generated before the campaign using multiple linear regression.</p>
+
+i. Select usage features and revenue feature
+```{r choose-relevantcols, echo=TRUE}
+# Select relevant feature
+reg_final_df = subset(final_df, select = c(DATA_USG_BEFORE, ARPU_BEFORE, VOICE_USG_BEFORE))
+```
+<p align='justify'> </p><br>
+
+ii. Split the dataset into train and test set 
+```{r split-train-test-reg, echo=TRUE}
+# Set the random seed
+set.seed(123)
+
+# Split the data into train and test set 
+train_idx = createDataPartition(reg_final_df$ARPU_BEFORE, p = 0.8, list = FALSE)
+reg_train_data = reg_final_df[train_idx,]
+reg_test_data = reg_final_df[-train_idx,]
+
+# Check dimensions of train and test set 
+cat(" Dimensions of train data:", dim(reg_train_data), "\n", "Dimensions of test data:", dim(reg_test_data), "\n")
+```
+<p align='justify'> </p><br>
+
+iii. Perform scaling on the train and test set and assign target for regression model
+```{r reg_tar, echo=TRUE}
+# Set the random seed
+set.seed(123)
+
+# Scaling
+train_data_scaled = reg_train_data %>%
+  select(-ARPU_BEFORE) %>%
+  scale() %>%
+  as.data.frame() %>%
+  cbind(reg_train_data$ARPU_BEFORE)
+
+colnames(train_data_scaled)[3] = "target"
+```
+<p align='justify'> </p><br>
+
+iv. Linear Regression 
+```{r lr, echo=TRUE}
+# Train the Regression Model
+lm_model = lm(target ~ ., data = train_data_scaled)
+
+# Make predictions on the test data 
+test_data_scaled = reg_test_data %>%
+  select(-ARPU_BEFORE) %>%
+  scale() %>%
+  as.data.frame() %>%
+  cbind(reg_test_data$ARPU_BEFORE)
+predictions = predict(lm_model, newdata = test_data_scaled)
+
+colnames(test_data_scaled)[3] = "target"
+```
+<p align='justify'> </p><br>
+
+#### Multiple Linear Regressin Model Performance
+```{r lr_output,echo=TRUE}
+# Result
+RMSE = sqrt(mean((predictions - test_data_scaled$target)^2))
+R2 = cor(predictions, test_data_scaled$target)^2
+```
+
+```{r lr_out,echo=FALSE}
+# Display result
+cat("Performance of Linear Regression:\n\nRMSE:", round(RMSE,2),"\nR-squared:", round(R2,5))
+```
+
+<p align='justify'>RMSE value of 75.65 suggests that on average, the predictions of the regression model have an error of approximately 75.65 units. R-squared value of 1 indicates that the predictors explain all of the variance. However, based on the output, the R-squared value of 0.00095 suggests that the independent variables in the model explain a very small portion (approximately 0.095%) of the variance in the dependent variable.</p>
+
+<p align='justify'> In other words, the model has very little predictive power in explaining the variability of the data. This means that customers' behavior in terms of usage is not the determinant of the revenue generated. This is indeed true because revenue generated is not just coming from usage but other factors such as purchasing roaming pass and added-value service. When Base Management Team try to design a new offer, the structure content cannot only consider data usage and voice usage will brings more revenue.</p><br>
+
+
+## Conclusion
+<p align='justify'>In conclusion, the research objectives of this study are achieved by using several statistical methods.</p>
+
+<p align='justify'>First of all, the **effectiveness of the pilot campaign** is evaluated where the statistics showed the pilot campaign lauched is moderately success with 63% take up rate and 68% active rate among the offer takers.</p>
+
+<p align='justify'>Second, the **campaign offer taker's profile** is identified. Campaign offer takers are mostly from age group between 22 and 36 years old with tenure more than 1 year and gender male. Most of them are mainly from Klang Valley, then follow by Sabah and Sarawak.
+Majority of the offer takers have higher ARPU, higher CPA revenue, higher reload amount, higher voice and data usage and tends to purchase data plan.</p>
+
+<p align='justify'>Third, a **classification model** is developed to predict if the customers will opt-in for the "Right Planning" campaign based on usage and revenue behavior. Random Forest Classifier with accuracy of 85.51% is chosen as the predictive model because it has the higghest accuracy compared to the other 2 models. The top 5 important features are `DATA_PURC_BEFORE`, `ARPU_BEFORE`, `RLD_IND_BEFORE`, `TENURE` and `DATA_USG_BEFORE`. </p>
+
+<p align='justify'>Last but not least, the **relationship between the customers' behavior in terms of usage and revenue generated** before the campaign using multiple linear regression is investigated. It is clearly proved that revenue generated is not directly affected by the data and voice usage. Other factors such as purchasing roaming pass and added-value service should be considered when Base Management Team would like to increase revenue.</p><br>
+
+
+## Citation
+Cote, C. (2021, January 21). What is Marketing Analytics? Harvard Business School Online. Retrieved May 20, 2023, from https://online.hbs.edu/blog/post/what-is-marketing-analytics 
